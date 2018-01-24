@@ -13,7 +13,7 @@ pub struct Shader {
 }
 
 impl Shader {
-	pub fn new(vertex_shader_src: &str, fragment_shader_src: &str) -> Shader {
+	pub fn new(vertex_shader_src: &str, fragment_shader_src: &str) -> Result<Shader, String> {
 		use std::ffi::{CStr, CString};
 		unsafe {
 			let (vs,fs) = (gl::CreateShader(gl::VERTEX_SHADER), gl::CreateShader(gl::FRAGMENT_SHADER));
@@ -31,24 +31,23 @@ impl Shader {
 					let mut len = 0;
 					gl::GetShaderInfoLog(sh, buf.len() as _, &mut len, buf.as_mut_ptr() as _);
 
-					println!("{}", CStr::from_bytes_with_nul_unchecked(&buf[..len as usize]).to_str().unwrap());
+					return Err(CStr::from_bytes_with_nul_unchecked(&buf[..len as usize]).to_string_lossy().into());
 				}
 				
 				gl::AttachShader(program, sh);
 			}
 
 			gl::LinkProgram(program);
-			gl::UseProgram(program);
 
 			gl::DeleteShader(vs);
 			gl::DeleteShader(fs);
 
-			Shader {
+			Ok(Shader {
 				gl_handle: program,
 
 				proj_loc: gl::GetUniformLocation(program, b"u_proj\0".as_ptr() as _),
 				view_loc: gl::GetUniformLocation(program, b"u_view\0".as_ptr() as _),
-			}
+			})
 		}
 	}
 

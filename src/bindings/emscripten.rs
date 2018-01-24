@@ -43,6 +43,7 @@ macro_rules! js {
 			unsafe { $crate::emscripten_asm_const_int(&LOCAL[0] as *const _ as *const u8, $($crate::Interop::as_int($x, &mut arena)),*) }
 		}
 	};
+
 	( $y:expr ) => {
 		{
 			#[allow(dead_code)]
