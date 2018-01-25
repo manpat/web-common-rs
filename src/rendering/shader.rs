@@ -226,7 +226,7 @@ impl ShaderBuilder {
 		self
 	}
 
-	pub fn finalize(mut self) -> (String, String) {
+	pub fn finalize_source(mut self) -> (String, String) {
 		let mut varyings_and_uniforms = String::new();
 
 		for v in self.varyings.iter() { write!(&mut varyings_and_uniforms, "varying {};\n", v).unwrap(); }
@@ -260,6 +260,11 @@ impl ShaderBuilder {
 
 		(vert_src, frag_src)
 	}
+
+	pub fn finalize(self) -> Result<Shader, String> {
+		let (v,f) = self.finalize_source();
+		Shader::new(&v, &f)
+	}
 }
 
 #[cfg(test)] mod tests {
@@ -273,7 +278,7 @@ impl ShaderBuilder {
 			.use_proj() .use_view()
 			.fragment("vec3 color = v_color;\ncolor.g = texture2D(u_tex, v_uv).r")
 			.output("vec4(color, 1.0)")
-			.finalize();
+			.finalize_source();
 
 		println!("vert source\n==========\n{}\n", vsh);
 		println!("frag source\n==========\n{}", fsh);
@@ -281,7 +286,7 @@ impl ShaderBuilder {
 		let (vsh, fsh) = ::ShaderBuilder::new()
 			.use_3d()
 			.output("vec4(1.0)")
-			.finalize();
+			.finalize_source();
 
 		println!("vert source\n==========\n{}\n", vsh);
 		println!("frag source\n==========\n{}", fsh);
