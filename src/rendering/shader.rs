@@ -4,6 +4,8 @@ use std;
 use math::*;
 use rendering::gl;
 
+use std::fmt::Write;
+
 #[derive(Copy, Clone)]
 pub struct Shader {
 	pub gl_handle: u32,
@@ -149,5 +151,139 @@ impl Shader {
 	pub fn set_view(&self, mat: &Mat4) {
 		assert!(self.is_bound(), "Tried to set uniform 'u_view' on unbound shader");
 		self.set_uniform_mat_raw(self.view_loc, &mat);
+	}
+}
+
+
+pub struct ShaderBuilder {
+	attributes: Vec<String>,
+	varyings: Vec<String>,
+	uniforms: Vec<String>,
+
+	vertex_body: String,
+	fragment_body: String,
+
+	use_3d: bool,
+	use_proj: bool,
+	use_view: bool,
+	use_highp: bool,
+}
+
+impl ShaderBuilder {
+	pub fn new() -> Self {
+		ShaderBuilder {
+			attributes: Vec::new(),
+			varyings: Vec::new(),
+			uniforms: Vec::new(),
+
+			vertex_body: String::new(),
+			fragment_body: String::new(),
+
+			use_3d: false,
+			use_proj: false,
+			use_view: false,
+			use_highp: false,
+		}
+	}
+
+	pub fn use_3d(mut self) -> Self { self.use_3d = true; self }
+	pub fn use_proj(mut self) -> Self { self.use_proj = true; self.uniform("proj", "mat4") }
+	pub fn use_view(mut self) -> Self { self.use_view = true; self.uniform("view", "mat4") }
+	pub fn use_highp(mut self) -> Self { self.use_highp = true; self }
+
+	pub fn vertex(mut self, data: &str) -> Self {
+		write!(&mut self.vertex_body, "{};\n", data).unwrap(); self
+	}
+
+	pub fn fragment(mut self, data: &str) -> Self {
+		write!(&mut self.fragment_body, "{};\n", data).unwrap(); self
+	}
+
+	pub fn uniform(mut self, name: &str, ty: &str) -> Self {
+		self.uniforms.push(format!("{} u_{}", ty, name)); self
+	}
+
+	pub fn attribute(mut self, name: &str, ty: &str) -> Self {
+		if name == "position" {
+			println!("Tried to overwrite 'position' attribute while building shader - ignoring");
+			return self
+		}
+
+		self.attributes.push(format!("{} {}", ty, name)); self
+	}
+
+	pub fn frag_attribute(mut self, name: &str, ty: &str) -> Self {
+		self.attributes.push(format!("{} {}", ty, name));
+		self.varyings.push(format!("{} v_{}", ty, name));
+
+		write!(&mut self.vertex_body, "v_{} = {};\n", name, name).unwrap();
+
+		self
+	}
+
+	pub fn output(mut self, expr: &str) -> Self {
+		write!(&mut self.fragment_body, "gl_FragColor = {};\n", expr).unwrap();
+		self
+	}
+
+	pub fn finalize(mut self) -> (String, String) {
+		let mut varyings_and_uniforms = String::new();
+
+		for v in self.varyings.iter() { write!(&mut varyings_and_uniforms, "varying {};\n", v).unwrap(); }
+		for u in self.uniforms.iter() { write!(&mut varyings_and_uniforms, "uniform {};\n", u).unwrap(); }
+
+		let mut vert_src = String::new();
+		let mut frag_src = String::new();
+
+		let position_attr_ty = if self.use_3d { "vec3" } else { "vec2" };
+
+		write!(&mut vert_src, "attribute {} position;\n", position_attr_ty).unwrap();
+		for a in self.attributes.iter() { write!(&mut vert_src, "attribute {};\n", a).unwrap(); }
+
+		let frag_precision = if self.use_highp { "highp" } else { "mediump" };
+		write!(&mut frag_src, "precision {} float;\n", frag_precision).unwrap();
+
+		self.vertex_body.push_str("gl_Position = ");
+		if self.use_proj { self.vertex_body.push_str("proj * "); }
+		if self.use_view { self.vertex_body.push_str("view * "); }
+		if self.use_3d {
+			self.vertex_body.push_str("vec4(position, 1.0);\n");
+		} else {
+			self.vertex_body.push_str("vec4(position, 0.0, 1.0);\n");
+		}
+
+		let bodies = [&self.vertex_body, &self.fragment_body];
+		for (sh, body) in [&mut vert_src, &mut frag_src].iter_mut().zip(bodies.iter()) {
+			write!(sh, "{}\nvoid main() {{\n{}}}\n",
+				varyings_and_uniforms, body).unwrap();
+		}
+
+		(vert_src, frag_src)
+	}
+}
+
+#[cfg(test)] mod tests {
+	#[test]
+	fn shader_builder() {
+		let (vsh, fsh) = ::ShaderBuilder::new()
+			.uniform("tex", "sampler2D")
+			.attribute("some_random_attribute", "vec4")
+			.frag_attribute("color", "vec3")
+			.frag_attribute("uv", "vec2")
+			.use_proj() .use_view()
+			.fragment("vec3 color = v_color;\ncolor.g = texture2D(u_tex, v_uv).r")
+			.output("vec4(color, 1.0)")
+			.finalize();
+
+		println!("vert source\n==========\n{}\n", vsh);
+		println!("frag source\n==========\n{}", fsh);
+
+		let (vsh, fsh) = ::ShaderBuilder::new()
+			.use_3d()
+			.output("vec4(1.0)")
+			.finalize();
+
+		println!("vert source\n==========\n{}\n", vsh);
+		println!("frag source\n==========\n{}", fsh);
 	}
 }
