@@ -41,6 +41,16 @@ impl Shader {
 
 			gl::LinkProgram(program);
 
+			let mut status = 0i32;
+			gl::GetProgramiv(program, gl::LINK_STATUS, &mut status);
+			if status == 0 {
+				let mut buf = [0u8; 1024];
+				let mut len = 0;
+				gl::GetProgramInfoLog(program, buf.len() as _, &mut len, buf.as_mut_ptr() as _);
+
+				return Err(CStr::from_bytes_with_nul_unchecked(&buf[..len as usize]).to_string_lossy().into());
+			}
+
 			gl::DeleteShader(vs);
 			gl::DeleteShader(fs);
 
@@ -240,12 +250,11 @@ impl ShaderBuilder {
 		write!(&mut vert_src, "attribute {} position;\n", position_attr_ty).unwrap();
 		for a in self.attributes.iter() { write!(&mut vert_src, "attribute {};\n", a).unwrap(); }
 
-		let frag_precision = if self.use_highp { "highp" } else { "mediump" };
-		write!(&mut frag_src, "precision {} float;\n", frag_precision).unwrap();
+		let precision = if self.use_highp { "highp" } else { "mediump" };
 
 		self.vertex_body.push_str("gl_Position = ");
-		if self.use_proj { self.vertex_body.push_str("proj * "); }
-		if self.use_view { self.vertex_body.push_str("view * "); }
+		if self.use_proj { self.vertex_body.push_str("u_proj * "); }
+		if self.use_view { self.vertex_body.push_str("u_view * "); }
 		if self.use_3d {
 			self.vertex_body.push_str("vec4(position, 1.0);\n");
 		} else {
@@ -254,8 +263,9 @@ impl ShaderBuilder {
 
 		let bodies = [&self.vertex_body, &self.fragment_body];
 		for (sh, body) in [&mut vert_src, &mut frag_src].iter_mut().zip(bodies.iter()) {
-			write!(sh, "{}\nvoid main() {{\n{}}}\n",
-				varyings_and_uniforms, body).unwrap();
+			write!(sh, "precision {} float;\n{}\nvoid main() {{\n{}}}\n",
+				precision, varyings_and_uniforms,
+				body).unwrap();
 		}
 
 		(vert_src, frag_src)

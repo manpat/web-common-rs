@@ -1,3 +1,4 @@
+use rendering::shader::*;
 use rendering::mesh::*;
 use rendering::gl;
 
@@ -48,6 +49,15 @@ impl Paper {
 				PAPER_COUNT
 			},
 		}
+	}
+
+	pub fn build_shader() -> Shader {
+		ShaderBuilder::new()
+			.frag_attribute("color", "vec4")
+			.use_proj()
+			.output("v_color")
+			.finalize()
+			.unwrap()
 	}
 
 	pub fn clear(&mut self) {
