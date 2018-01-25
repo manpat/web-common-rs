@@ -222,6 +222,10 @@ impl ShaderBuilder {
 		self.attributes.push(format!("{} {}", ty, name)); self
 	}
 
+	pub fn varying(mut self, name: &str, ty: &str) -> Self {
+		self.varyings.push(format!("{} v_{}", ty, name)); self
+	}
+
 	pub fn frag_attribute(mut self, name: &str, ty: &str) -> Self {
 		self.attributes.push(format!("{} {}", ty, name));
 		self.varyings.push(format!("{} v_{}", ty, name));
