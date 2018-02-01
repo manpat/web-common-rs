@@ -265,11 +265,41 @@ impl ShaderBuilder {
 			self.vertex_body.push_str("vec4(position, 0.0, 1.0);\n");
 		}
 
-		let bodies = [&self.vertex_body, &self.fragment_body];
-		for (sh, body) in [&mut vert_src, &mut frag_src].iter_mut().zip(bodies.iter()) {
-			write!(sh, "precision {} float;\n{}\nvoid main() {{\n{}}}\n",
-				precision, varyings_and_uniforms,
-				body).unwrap();
+		let mut bodies = [&mut self.vertex_body, &mut self.fragment_body];
+		for (sh, body) in [&mut vert_src, &mut frag_src].iter_mut().zip(bodies.iter_mut()) {
+			write!(sh, "precision {} float;\n{}\n",
+				precision, varyings_and_uniforms).unwrap();
+
+			let mut position = 0;
+
+			while let Some(start) = body[position..].find("func ") {
+				let length = body[start..].chars()
+					.scan((false, 0), |acc, c| {
+						let (body, nesting) = *acc;
+
+						*acc = match (body, nesting, c) {
+							(false, _, '}') => return None,
+							(true, 1, '}') => return None,
+
+							(false, 0, '{') => (true, 1),
+							(true, x, '{') => (true, x+1),
+							(true, x, '}') => (true, x-1),
+							_ => *acc,
+						};
+
+						Some(*acc)
+					})
+					.count();
+
+				let start = start + position;
+				let end = start + length + 1;
+
+				write!(sh, "{}\n", &body[start+5..end]).unwrap();
+				body.splice(start..end, "");
+				position = start;
+			}
+
+			write!(sh, "void main() {{\n{}}}\n", body).unwrap();
 		}
 
 		(vert_src, frag_src)
@@ -290,7 +320,21 @@ impl ShaderBuilder {
 			.frag_attribute("color", "vec3")
 			.frag_attribute("uv", "vec2")
 			.use_proj() .use_view()
-			.fragment("vec3 color = v_color;\ncolor.g = texture2D(u_tex, v_uv).r")
+			.fragment("
+				func vec3 function_test(vec3 c) {
+					return vec3(1.0) - c;
+				}
+
+				func vec3 function_test_2(float c) {
+					if (c < 0.5) {
+						return vec3(c);
+					} else {
+						return vec3(1.0 - c);
+					}
+				}
+
+				vec3 color = function_test(v_color);
+				color.g = texture2D(u_tex, v_uv).r")
 			.output("vec4(color, 1.0)")
 			.finalize_source();
 

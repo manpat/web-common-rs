@@ -2,8 +2,11 @@ use bindings::emscripten::*;
 use bindings::gl;
 
 use common::color::*;
+use common::vector::Vec2i;
 
-pub struct WebGLContext {}
+pub struct WebGLContext {
+	ems_context: EMSCRIPTEN_WEBGL_CONTEXT_HANDLE,
+}
 
 impl WebGLContext {
 	pub fn new(alpha: bool) -> Self {
@@ -45,13 +48,26 @@ impl WebGLContext {
 			panic!("Failed to make webgl context current");
 		}
 
-		WebGLContext {}
+		WebGLContext { ems_context: ems_context_handle }
 	}
 	
+	pub fn clear(&self) {
+		unsafe {
+			gl::Clear(gl::COLOR_BUFFER_BIT);
+		}
+	}
+
 	pub fn set_background<C>(&self, col: C) where C: Into<Color> {
 		unsafe {
 			let c = col.into();
 			gl::ClearColor(c.r, c.g, c.b, c.a);
+		}
+	}
+
+	pub fn set_viewport<V>(&self, size: V) where V: Into<Vec2i> {
+		unsafe {
+			let s = size.into();
+			gl::Viewport(0, 0, s.x, s.y);
 		}
 	}
 }

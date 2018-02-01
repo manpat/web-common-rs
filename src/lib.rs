@@ -4,6 +4,7 @@
 #![feature(ord_max_min)]
 #![feature(link_args)]
 #![feature(const_fn)]
+#![feature(splice)]
 
 pub extern crate common;
 pub use common::*;
