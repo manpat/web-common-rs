@@ -38,31 +38,32 @@ impl Texture {
 		tex
 	}
 
-	// pub fn from_png(data: &[u8]) -> Self {
-	// 	use png::{Decoder, Reader};
+	// TODO: try and find a way to use browsers builtin png decode
+	pub fn from_png(data: &[u8]) -> Self {
+		use png::Decoder;
 
-	// 	let decoder = Decoder::new(data);
-	// 	let (info, mut reader) = decoder.read_info().unwrap();
+		let decoder = Decoder::new(data);
+		let (info, mut reader) = decoder.read_info().unwrap();
 
-	// 	assert!(info.width.is_power_of_two(), "Textures must be POW2");
-	// 	assert!(info.height.is_power_of_two(), "Textures must be POW2");
+		assert!(info.width.is_power_of_two(), "Textures must be POW2");
+		assert!(info.height.is_power_of_two(), "Textures must be POW2");
 
-	// 	let mut buf = vec![0; info.buffer_size()];
-	// 	reader.next_frame(&mut buf).unwrap();
+		let mut buf = vec![0; info.buffer_size()];
+		reader.next_frame(&mut buf).unwrap();
 
-	// 	let mut tex = Texture::new();
-	// 	let _bind_guard = TextureBindGuard::new(&tex);
+		let mut tex = Texture::new();
+		let _bind_guard = TextureBindGuard::new(&tex);
 
-	// 	tex.size = Vec2i::new(info.width as i32, info.height as i32);
+		tex.size = Vec2i::new(info.width as i32, info.height as i32);
 
-	// 	unsafe {
-	// 		gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32,
-	// 			tex.size.x, tex.size.y, 0, gl::RGBA,
-	// 			gl::UNSIGNED_BYTE, buf.as_ptr() as *const _);
-	// 	}
+		unsafe {
+			gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32,
+				tex.size.x, tex.size.y, 0, gl::RGBA,
+				gl::UNSIGNED_BYTE, buf.as_ptr() as *const _);
+		}
 
-	// 	tex
-	// }
+		tex
+	}
 
 	fn get_bound_id() -> u32 {
 		unsafe {
@@ -93,11 +94,7 @@ impl Texture {
 			let mut v = Vec::with_capacity(data.len() * 4);
 			for c in data.iter() {
 				let (r,g,b,a) = c.to_byte_tuple();
-
-				v.push(r);
-				v.push(g);
-				v.push(b);
-				v.push(a);
+				v.extend_from_slice(&[r, g, b, a]);
 			}
 
 			let _bind_guard = TextureBindGuard::new(self);
@@ -117,11 +114,7 @@ impl Texture {
 			let mut v = Vec::with_capacity(data.len() * 4);
 			for c in data.iter() {
 				let (r,g,b,a) = c.to_byte_tuple();
-
-				v.push(r);
-				v.push(g);
-				v.push(b);
-				v.push(a);
+				v.extend_from_slice(&[r, g, b, a]);
 			}
 
 			let _bind_guard = TextureBindGuard::new(self);

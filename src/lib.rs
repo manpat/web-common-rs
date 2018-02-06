@@ -9,6 +9,8 @@
 pub extern crate common;
 pub use common::*;
 
+extern crate png;
+
 #[macro_use] pub mod bindings;
 #[macro_use] pub mod coro_util;
 
