@@ -2,6 +2,7 @@
 #![feature(inclusive_range_syntax)]
 #![feature(specialization)]
 #![feature(ord_max_min)]
+#![feature(ascii_ctype)]
 #![feature(link_args)]
 #![feature(const_fn)]
 #![feature(splice)]
