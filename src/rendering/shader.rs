@@ -39,6 +39,9 @@ impl Shader {
 				gl::AttachShader(program, sh);
 			}
 
+			// TODO: Automate the everloving shit out of this please
+			gl::BindAttribLocation(program, 0, b"position\0".as_ptr() as _);
+
 			gl::LinkProgram(program);
 
 			let mut status = 0i32;
@@ -249,12 +252,14 @@ impl ShaderBuilder {
 		let mut vert_src = String::new();
 		let mut frag_src = String::new();
 
+		let precision = if self.use_highp { "precision highp float;" } else { "precision mediump float;" };
+		write!(&mut vert_src, "{}\n", precision).unwrap();
+		write!(&mut frag_src, "{}\n", precision).unwrap();
+
 		let position_attr_ty = if self.use_3d { "vec3" } else { "vec2" };
 
 		write!(&mut vert_src, "attribute {} position;\n", position_attr_ty).unwrap();
 		for a in self.attributes.iter() { write!(&mut vert_src, "attribute {};\n", a).unwrap(); }
-
-		let precision = if self.use_highp { "highp" } else { "mediump" };
 
 		self.vertex_body.push_str("gl_Position = ");
 		if self.use_proj { self.vertex_body.push_str("u_proj * "); }
@@ -267,8 +272,7 @@ impl ShaderBuilder {
 
 		let mut bodies = [&mut self.vertex_body, &mut self.fragment_body];
 		for (sh, body) in [&mut vert_src, &mut frag_src].iter_mut().zip(bodies.iter_mut()) {
-			write!(sh, "precision {} float;\n{}\n",
-				precision, varyings_and_uniforms).unwrap();
+			write!(sh, "\n{}\n", varyings_and_uniforms).unwrap();
 
 			let mut position = 0;
 
