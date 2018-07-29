@@ -14,14 +14,16 @@ extern "C" fn resume_main_coro(ctx: *mut CVoid) {
 
 	let coro: &mut Box<Generator<Yield=(), Return=()>> = unsafe{ transmute(ctx) };
 
-	match coro.resume() {
-		Yielded(()) => {}
-		Complete(()) => unsafe {
-			println!("Main coro has returned");
+	unsafe {
+		match coro.resume() {
+			Yielded(()) => {}
+			Complete(()) => {
+				println!("Main coro has returned");
 
-			Box::from_raw(ctx as _);
+				Box::from_raw(ctx as _);
 
-			emscripten_cancel_main_loop();
+				emscripten_cancel_main_loop();
+			}
 		}
 	}
 }

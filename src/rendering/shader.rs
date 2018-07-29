@@ -6,7 +6,7 @@ use rendering::gl;
 
 use std::fmt::Write;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Shader {
 	pub gl_handle: u32,
 
@@ -261,14 +261,16 @@ impl ShaderBuilder {
 		write!(&mut vert_src, "attribute {} position;\n", position_attr_ty).unwrap();
 		for a in self.attributes.iter() { write!(&mut vert_src, "attribute {};\n", a).unwrap(); }
 
-		self.vertex_body.push_str("gl_Position = ");
-		if self.use_proj { self.vertex_body.push_str("u_proj * "); }
-		if self.use_view { self.vertex_body.push_str("u_view * "); }
+		let mut gl_position = String::from("gl_Position = ");
+		if self.use_proj { gl_position.push_str("u_proj * "); }
+		if self.use_view { gl_position.push_str("u_view * "); }
 		if self.use_3d {
-			self.vertex_body.push_str("vec4(position, 1.0);\n");
+			gl_position.push_str("vec4(position, 1.0);\n");
 		} else {
-			self.vertex_body.push_str("vec4(position, 0.0, 1.0);\n");
+			gl_position.push_str("vec4(position, 0.0, 1.0);\n");
 		}
+
+		self.vertex_body = format!("{}{}", gl_position, self.vertex_body);
 
 		let mut bodies = [&mut self.vertex_body, &mut self.fragment_body];
 		for (sh, body) in [&mut vert_src, &mut frag_src].iter_mut().zip(bodies.iter_mut()) {
@@ -299,7 +301,7 @@ impl ShaderBuilder {
 				let end = start + length + 1;
 
 				write!(sh, "{}\n", &body[start+5..end]).unwrap();
-				body.splice(start..end, "");
+				body.replace_range(start..end, "");
 				position = start;
 			}
 
@@ -310,8 +312,30 @@ impl ShaderBuilder {
 	}
 
 	pub fn finalize(self) -> Result<Shader, String> {
+		use std::ffi::CString;
+
+		let attributes = self.attributes.iter()
+			.map(|a| CString::new(a.split(' ').nth(1).unwrap()).unwrap())
+			.collect::<Vec<_>>();
+
 		let (v,f) = self.finalize_source();
-		Shader::new(&v, &f)
+		let mut s = Shader::new(&v, &f)?;
+
+		for (idx, attrib_name) in attributes.iter().enumerate() {
+			unsafe {
+				gl::BindAttribLocation(s.gl_handle, 1 + idx as u32, attrib_name.as_ptr());
+			}
+		}
+
+		unsafe {
+			gl::BindAttribLocation(s.gl_handle, 0, b"position\0".as_ptr() as _);
+			gl::LinkProgram(s.gl_handle);
+
+			s.proj_loc = gl::GetUniformLocation(s.gl_handle, b"u_proj\0".as_ptr() as _);
+			s.view_loc = gl::GetUniformLocation(s.gl_handle, b"u_view\0".as_ptr() as _);
+		}
+
+		Ok(s)
 	}
 }
 

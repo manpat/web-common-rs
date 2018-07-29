@@ -5,6 +5,8 @@ use rendering::gl;
 
 use rendering::texture::*;
 
+use webgl::WebGLContext;
+
 pub struct Framebuffer {
 	gl_handle: u32,
 	targets: Vec<Texture>,
@@ -23,6 +25,10 @@ impl Framebuffer {
 		unsafe {
 			gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 		}
+	}
+
+	pub fn update_viewport(&self, webgl: &WebGLContext) {
+		webgl.set_viewport(self.size);
 	}
 
 	pub fn get_target(&mut self, id: usize) -> Option<&mut Texture> {

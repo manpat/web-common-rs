@@ -51,9 +51,15 @@ impl WebGLContext {
 		WebGLContext { ems_context: ems_context_handle }
 	}
 	
-	pub fn clear(&self) {
+	pub fn clear_color(&self) {
 		unsafe {
 			gl::Clear(gl::COLOR_BUFFER_BIT);
+		}
+	}
+
+	pub fn clear_all(&self) {
+		unsafe {
+			gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
 		}
 	}
 
