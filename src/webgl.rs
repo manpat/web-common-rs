@@ -76,4 +76,74 @@ impl WebGLContext {
 			gl::Viewport(0, 0, s.x, s.y);
 		}
 	}
+
+	pub fn enable_color_write(&self) {
+		unsafe { gl::ColorMask(1, 1, 1, 1) }
+	}
+	pub fn disable_color_write(&self) {
+		unsafe { gl::ColorMask(0, 0, 0, 0) }
+	}
+
+	pub fn enable_depth_write(&self) {
+		unsafe { gl::DepthMask(1) }
+	}
+	pub fn disable_depth_write(&self) {
+		unsafe { gl::DepthMask(0) }
+	}
+
+	pub fn set_stencil(&self, params: StencilParams) {
+		unsafe {
+			gl::StencilFunc(params.condition, params.reference as i32, 0xff);
+			gl::StencilOp(params.stencil_fail, params.depth_fail, params.pass);
+		}
+	}
+}
+
+pub struct StencilParams {
+	pub condition: u32,
+	pub reference: u8,
+
+	pub stencil_fail: u32,
+	pub depth_fail: u32,
+	pub pass: u32,
+}
+
+impl StencilParams {
+	pub fn new(reference: u8) -> Self {
+		StencilParams {
+			reference,
+			condition: gl::NEVER,
+
+			stencil_fail: gl::KEEP,
+			depth_fail: gl::KEEP,
+			pass: gl::KEEP,
+		}
+	}
+
+
+	pub fn pass_if(self, condition: u32) -> Self {
+		StencilParams { condition, ..self }
+	}
+
+	pub fn always(self) -> Self { self.pass_if(gl::ALWAYS) }
+	pub fn never(self) -> Self { self.pass_if(gl::NEVER) }
+	pub fn equal(self) -> Self { self.pass_if(gl::EQUAL) }
+	pub fn less_than_stencil(self) -> Self { self.pass_if(gl::LESS) }
+	pub fn greater_than_stencil(self) -> Self { self.pass_if(gl::GREATER) }
+
+	pub fn replace(self) -> Self {
+		Self { pass: gl::REPLACE, ..self }
+	}
+
+	pub fn increment(self) -> Self {
+		Self { pass: gl::INCR, ..self }
+	}
+
+	pub fn decrement(self) -> Self {
+		Self { pass: gl::DECR, ..self }
+	}
+
+	pub fn invert(self) -> Self {
+		Self { pass: gl::INVERT, ..self }
+	}
 }
