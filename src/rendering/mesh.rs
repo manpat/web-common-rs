@@ -165,6 +165,10 @@ impl<V> MeshBuilder<V> where V: Vertex {
 	}
 
 	pub fn add_convex_poly(&mut self, vs: &[V]) {
+		self.add_tri_fan(vs);
+	}
+
+	pub fn add_tri_fan(&mut self, vs: &[V]) {
 		assert!(vs.len() >= 3);
 
 		let base = self.verts.len() as u16;
@@ -175,6 +179,20 @@ impl<V> MeshBuilder<V> where V: Vertex {
 			self.indices.push(base + 0);
 			self.indices.push(base + i);
 			self.indices.push(base + i+1);
+		}
+	}
+
+	pub fn add_tri_strip(&mut self, vs: &[V]) {
+		assert!(vs.len() >= 3);
+
+		let base = self.verts.len() as u16;
+		self.verts.extend_from_slice(vs);
+
+		for i in 0..vs.len()-2 {
+			let i = i as u16;
+			self.indices.push(base + i);
+			self.indices.push(base + i+1);
+			self.indices.push(base + i+2);
 		}
 	}
 }
