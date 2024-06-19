@@ -1,10 +1,5 @@
-#![feature(generators, generator_trait, box_syntax)]
+#![feature(coroutines, coroutine_trait)]
 #![feature(specialization)]
-#![feature(ord_max_min)]
-#![feature(ascii_ctype)]
-#![feature(link_args)]
-#![feature(const_fn)]
-#![feature(splice)]
 
 pub extern crate common;
 pub use common::*;

@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["manpat <pat@patsown.com>"]
 
 [dependencies]
-common = { git = "https://github.com/manpat/common-rs.git", rev="ed82dd0256000886cef9971d1dce58815cd74de9" }
+common = { git = "https://github.com/manpat/common-rs.git", branch="cruft-resurrection" }
 # common = { path = "../common" }
 
 png = "0.10.0"

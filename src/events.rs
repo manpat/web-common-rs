@@ -208,8 +208,6 @@ fn on_key_up(_: i32, e: *const EmscriptenKeyboardEvent, ud: *mut CVoid) -> i32 {
 
 impl KeyCode {
 	pub fn from_c_str(code_str: *const CChar, key_str: *const CChar) -> Option<KeyCode> {
-		use std::ascii::AsciiExt;
-
 		let code = unsafe{ CStr::from_ptr(code_str) };
 		let key = unsafe{ CStr::from_ptr(key_str) };
 
@@ -258,7 +256,7 @@ impl KeyCode {
 				return Some(KeyCode::F( key[1..].parse().unwrap() ))
 			}
 
-			x if x.is_ascii_punctuation() => {
+			x if x.bytes().all(|c| c.is_ascii_punctuation()) => {
 				return Some(KeyCode::Symbol(x.chars().next().unwrap()))
 			}
 
