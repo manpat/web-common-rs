@@ -42,12 +42,12 @@ macro_rules! parameter_lerp {
 
 		use common::coro::Coro;
 
-		Coro::from(move || {
+		Coro::from(#[coroutine] move || {
 			for _ in 0..delay_frames { yield }
 
 			for i in 0..num_frames {
 				let prog = i as f32 / num_frames as f32;
-				rc_obj.borrow_mut().$param = prog.$ease(from, to);
+				rc_obj.borrow_mut().$param = prog.$ease().lerp(from, to);
 				yield;
 			}
 
